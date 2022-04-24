@@ -1,11 +1,9 @@
 import pandas as pd
-import pandas.core.indexes.multi
 import streamlit as st
-import backtrader as bt
-import numpy as np
 from my_dataloader import get_data as gd
-from my_backtrader.base_setup import MyTrader
-import my_backtrader.strategies as strgy
+from base_setup import MyTraderBacktesting
+from time_measure import timeit
+
 
 # TITLE
 st.title("Money Tree by Bhushan")
@@ -16,7 +14,7 @@ st.image("https://cdn.pixabay.com/photo/2017/09/07/08/54/money-2724241_960_720.j
 # Loading data
 scripts = None  # initial value
 db = pd.DataFrame()
-period_years = 1 # 1 year of data
+period_years = 3  # 1 year of data
 
 
 @st.cache
@@ -73,35 +71,49 @@ with display:
 trader = st.container()
 with trader:
     st.title("Trader Runs")
-    myTrader = MyTrader(data=db)
+    myTrader = MyTraderBacktesting(data=db)
 
-    strategy = strgy.TestStrategy
+    if st.button("Run Backtesting"):
+        print("Running Backtest...")
 
-    myTrader.add_strategy(strategy)
-    #reset_cerebro = st.checkbox("Reset Cerebro")
+        stats = myTrader.run_backtest()
 
-    if st.button("Run Cerebro"):
-        print("Running Cerebro...")
-        # if reset_cerebro:
-        #     myTrader.reset_cerebro()
-        myTrader.run_cerebro()
+        st.subheader("Summary of Trade")
+        st.code(stats)
+
+        st.subheader("Plot of Trades")
+        st.write(myTrader.get_plot_of_trades())
+
+        st.subheader("Optimize SMA")
+        optimize_stats = myTrader.optimize_sma()
+
+        st.subheader("Best strategy")
+        st.code(optimize_stats['_strategy'])
+
+        st.subheader("All Trades")
+        with st.expander("Open to see all trades"):
+            st.code(optimize_stats['_trades'])
+
+
+
+
+
 
     # Metric Display
-    col1, col2, col3 = st.columns(3)
-    initial_value = myTrader.initial_cash
-    current_value = myTrader.portfolio_value()
-    with col1:
-        st.metric(label="Current Portfolio($)", value=current_value.__round__(2),
-                  delta=(current_value - initial_value).__round__(2))
-    with col2:
-        per = (current_value - initial_value) * 100 / initial_value
-        st.metric(label="Percentage Change(%)", delta=per.__round__(2), value=(per + 100).__round__(2))
+    # col1, col2, col3 = st.columns(3)
+    # initial_value = myTrader.initial_cash
+    # current_value = myTrader.portfolio_value()
+    # with col1:
+    #     st.metric(label="Current Portfolio($)", value=current_value.__round__(2),
+    #               delta=(current_value - initial_value).__round__(2))
+    # with col2:
+    #     per = (current_value - initial_value) * 100 / initial_value
+    #     st.metric(label="Percentage Change(%)", delta=per.__round__(2), value=(per + 100).__round__(2))
+    #
+    # with col3:
+    #     st.metric(label=scripts + "(yrs)", value=period_years)
 
-    with col3:
-        st.metric(label=scripts + "(yrs)", value=period_years)
 
-    if st.checkbox("Show Logs"):
-        st.write(strategy.master_log)
 
 
 
